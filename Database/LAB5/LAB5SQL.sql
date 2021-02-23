@@ -1,0 +1,6 @@
+EXPLAIN ANALYZE SELECT * FROM mutants WHERE name = 'Erik Ray';
+CREATE INDEX ON mutants (name);
+EXPLAIN ANALYZE SELECT * FROM mutants WHERE name = 'Erik Ray';
+EXPLAIN ANALYZE SELECT * FROM mutants WHERE age = 80;
+CREATE INDEX ON mutants USING hash(age);
+EXPLAIN ANALYZE SELECT * FROM mutants WHERE age = 80;
