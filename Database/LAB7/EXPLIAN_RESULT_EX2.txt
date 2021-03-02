@@ -1,0 +1,15 @@
+HashAggregate  (cost=682.60..682.62 rows=2 width=34) (actual time=8.523..8.526 rows=2 loops=1)
+  Group Key: staff.store_id
+  InitPlan 1 (returns $0)
+    ->  Aggregate  (cost=290.45..290.46 rows=1 width=8) (actual time=2.739..2.740 rows=1 loops=1)
+          ->  Seq Scan on payment payment_1  (cost=0.00..253.96 rows=14596 width=8) (actual time=0.004..1.092 rows=14596 loops=1)
+  ->  Hash Join  (cost=1.04..367.81 rows=4865 width=8) (actual time=4.424..7.342 rows=3482 loops=1)
+        Hash Cond: (payment.staff_id = staff.staff_id)
+        ->  Seq Scan on payment  (cost=0.00..326.94 rows=4865 width=8) (actual time=4.355..6.263 rows=3482 loops=1)
+              Filter: (payment_date > ($0 - '30 days'::interval))
+              Rows Removed by Filter: 11114
+        ->  Hash  (cost=1.02..1.02 rows=2 width=6) (actual time=0.038..0.039 rows=2 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              ->  Seq Scan on staff  (cost=0.00..1.02 rows=2 width=6) (actual time=0.011..0.013 rows=2 loops=1)
+Planning Time: 0.213 ms
+Execution Time: 8.663 ms
