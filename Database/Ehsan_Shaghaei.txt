@@ -1,0 +1,397 @@
+# Assignment 1 Ehsan Shaghaei B19-03
+
+
+
+## Using B-Tree index 
+### Improving query Q1
+```t
+Before indexing query analysis: 
+"Hash Join  (cost=510.99..12062691.37 rows=14596 width=70) (actual time=482.853..1276120.426 rows=14596 loops=1)"
+"  Hash Cond: (p.rental_id = r.rental_id)"
+"  ->  Seq Scan on payment p  (cost=0.00..253.96 rows=14596 width=26) (actual time=0.009..10.861 rows=14596 loops=1)"
+"  ->  Hash  (cost=310.44..310.44 rows=16044 width=36) (actual time=20.478..20.483 rows=16044 loops=1)"
+"        Buckets: 16384  Batches: 1  Memory Usage: 1379kB"
+"        ->  Seq Scan on rental r  (cost=0.00..310.44 rows=16044 width=36) (actual time=0.009..3.052 rows=16044 loops=1)"
+"  SubPlan 1"
+"    ->  Aggregate  (cost=826.37..826.38 rows=1 width=8) (actual time=87.357..87.357 rows=1 loops=14596)"
+"          ->  Hash Join  (cost=510.99..814.21 rows=4865 width=0) (actual time=7.420..80.396 rows=6134 loops=14596)"
+"                Hash Cond: (p2.rental_id = r2.rental_id)"
+"                ->  Seq Scan on payment p2  (cost=0.00..290.45 rows=4865 width=4) (actual time=7.267..49.385 rows=6134 loops=14596)"
+"                      Filter: (amount < p.amount)"
+"                      Rows Removed by Filter: 8462"
+"                ->  Hash  (cost=310.44..310.44 rows=16044 width=4) (actual time=162.702..162.704 rows=16044 loops=1)"
+"                      Buckets: 16384  Batches: 1  Memory Usage: 693kB"
+"                      ->  Seq Scan on rental r2  (cost=0.00..310.44 rows=16044 width=4) (actual time=0.008..3.571 rows=16044 loops=1)"
+"Planning Time: 1.129 ms"
+"Execution Time: 1276131.229 ms"
+```
+```t
+After indexing query analysis: 
+"Hash Join  (cost=510.99..12062691.37 rows=14596 width=70) (actual time=19.908..82286.157 rows=14596 loops=1)"
+"  Hash Cond: (p.rental_id = r.rental_id)"
+"  ->  Seq Scan on payment p  (cost=0.00..253.96 rows=14596 width=26) (actual time=0.025..5.297 rows=14596 loops=1)"
+"  ->  Hash  (cost=310.44..310.44 rows=16044 width=36) (actual time=5.431..5.431 rows=16044 loops=1)"
+"        Buckets: 16384  Batches: 1  Memory Usage: 1379kB"
+"        ->  Seq Scan on rental r  (cost=0.00..310.44 rows=16044 width=36) (actual time=0.016..1.781 rows=16044 loops=1)"
+"  SubPlan 1"
+"    ->  Aggregate  (cost=826.37..826.38 rows=1 width=8) (actual time=5.630..5.630 rows=1 loops=14596)"
+"          ->  Hash Join  (cost=510.99..814.21 rows=4865 width=0) (actual time=0.478..5.147 rows=6134 loops=14596)"
+"                Hash Cond: (p2.rental_id = r2.rental_id)"
+"                ->  Seq Scan on payment p2  (cost=0.00..290.45 rows=4865 width=4) (actual time=0.468..3.208 rows=6134 loops=14596)"
+"                      Filter: (amount < p.amount)"
+"                      Rows Removed by Filter: 8462"
+"                ->  Hash  (cost=310.44..310.44 rows=16044 width=4) (actual time=4.892..4.892 rows=16044 loops=1)"
+"                      Buckets: 16384  Batches: 1  Memory Usage: 693kB"
+"                      ->  Seq Scan on rental r2  (cost=0.00..310.44 rows=16044 width=4) (actual time=0.008..2.029 rows=16044 loops=1)"
+"Planning Time: 2.731 ms"
+"Execution Time: 82294.061 ms"
+```
+#### Targeted table and attributes
+ The chosen attributes are ```payment.rental_id``` and ```payment.amount``` from the table ```public.payment ``` since in pre-analysis we have ``` Hash Cond: (p.rental_id = r.rental_id) ``` in the join operation and the scan process regarding  the filter ```Filter: (amount < p.amount)``` as time consuming processes. Further more the attribute ```payment.rental_id``` is an ```INTEGR``` forign key from the table ```public.rental``` and the range of values for the attribute  ```payment.amount``` is the type ```NUMERIC(5,2)``` and concidering the domain and the range of this attribute, regarding the importance of this attribute in our query, I decided include this column in index.
+#### DDL query
+```SQL
+CREATE INDEX rental_id_am
+    ON public.payment USING btree
+    (amount ASC NULLS LAST, rental_id ASC NULLS LAST)
+    INCLUDE(rental_id, amount)
+    TABLESPACE pg_default;
+```
+#### Cost before and after the creation of the index
+```t
+ Before Indexing cost:
+"Planning Time: 1.129 ms"
+"Execution Time: 1276131.229 ms"
+```
+```t
+ After indexing cost:
+ "Planning Time: 2.731 ms"
+"Execution Time: 82294.061 ms"
+```
+Improvement percentage ~ 93.5 %
+### Improving query Q2
+```t
+Before indexing query analysis: 
+"Nested Loop Anti Join  (cost=603.14..9076455.39 rows=9731 width=10) (actual time=38740.354..120530.148 rows=1 loops=1)"
+"  Join Filter: (r2.last_update > r1.last_update)"
+"  Rows Removed by Join Filter: 801795100"
+"  ->  Hash Join  (cost=510.99..803.28 rows=14596 width=18) (actual time=10.136..111.648 rows=14596 loops=1)"
+"        Hash Cond: (p1.rental_id = r1.rental_id)"
+"        ->  Seq Scan on payment p1  (cost=0.00..253.96 rows=14596 width=12) (actual time=0.017..30.796 rows=14596 loops=1)"
+"        ->  Hash  (cost=310.44..310.44 rows=16044 width=14) (actual time=9.971..9.972 rows=16044 loops=1)"
+"              Buckets: 16384  Batches: 1  Memory Usage: 881kB"
+"              ->  Seq Scan on rental r1  (cost=0.00..310.44 rows=16044 width=14) (actual time=0.019..4.481 rows=16044 loops=1)"
+"  ->  Materialize  (cost=92.15..1455.43 rows=62167 width=8) (actual time=0.001..3.028 rows=54934 loops=14596)"
+"        ->  Hash Join  (cost=92.15..1144.59 rows=62167 width=8) (actual time=5.106..23.796 rows=62560 loops=1)"
+"              Hash Cond: (r2.customer_id = c.customer_id)"
+"              ->  Seq Scan on rental r2  (cost=0.00..310.44 rows=16044 width=10) (actual time=0.010..2.587 rows=16044 loops=1)"
+"              ->  Hash  (cost=62.95..62.95 rows=2336 width=4) (actual time=4.968..4.968 rows=2336 loops=1)"
+"                    Buckets: 4096  Batches: 1  Memory Usage: 115kB"
+"                    ->  Seq Scan on customer c  (cost=0.00..62.95 rows=2336 width=4) (actual time=1.817..4.241 rows=2336 loops=1)"
+"                          Filter: (active = 1)"
+"                          Rows Removed by Filter: 60"
+"Planning Time: 4.879 ms"
+"Execution Time: 120531.701 ms"
+```
+```t
+After indexing query analysis: 
+"Nested Loop Anti Join  (cost=603.42..6116084.41 rows=9731 width=10) (actual time=1162.715..3505.673 rows=1 loops=1)"
+"  ->  Hash Join  (cost=510.99..803.28 rows=14596 width=18) (actual time=7.817..28.673 rows=14596 loops=1)"
+"        Hash Cond: (p1.rental_id = r1.rental_id)"
+"        ->  Seq Scan on payment p1  (cost=0.00..253.96 rows=14596 width=12) (actual time=0.017..4.444 rows=14596 loops=1)"
+"        ->  Hash  (cost=310.44..310.44 rows=16044 width=14) (actual time=7.725..7.725 rows=16044 loops=1)"
+"              Buckets: 16384  Batches: 1  Memory Usage: 881kB"
+"              ->  Seq Scan on rental r1  (cost=0.00..310.44 rows=16044 width=14) (actual time=0.013..3.545 rows=16044 loops=1)"
+"  ->  Hash Join  (cost=92.44..513.63 rows=20722 width=8) (actual time=0.237..0.237 rows=1 loops=14596)"
+"        Hash Cond: (r2.customer_id = c.customer_id)"
+"        ->  Index Only Scan using cus_pay on rental r2  (cost=0.29..174.15 rows=5348 width=10) (actual time=0.236..0.236 rows=1 loops=14596)"
+"              Index Cond: (last_update > r1.last_update)"
+"              Heap Fetches: 14595"
+"        ->  Hash  (cost=62.95..62.95 rows=2336 width=4) (actual time=0.947..0.948 rows=2336 loops=1)"
+"              Buckets: 4096  Batches: 1  Memory Usage: 115kB"
+"              ->  Seq Scan on customer c  (cost=0.00..62.95 rows=2336 width=4) (actual time=0.010..0.515 rows=2336 loops=1)"
+"                    Filter: (active = 1)"
+"                    Rows Removed by Filter: 60"
+"Planning Time: 1.095 ms"
+"Execution Time: 3505.985 ms"
+```
+#### Targeted table and attributes
+ The chosen attributes are ```rental.customer_id``` and ```rental.last_update``` from the table ```public.rental ``` since in pre-analysis we have ``` Hash Cond: (p.rental_id = r.rental_id) ``` in the join operation and the scan process regarding  the filter ``` Join Filter: (r2.last_update > r1.last_update)``` as time consuming processes. Further more the attribute ```rental.customer_id``` is an ```INTEGR``` forign key from the table ```public.rental``` and the range of values for the attribute  ```rental.last_update``` is the type ```timestamp``` and concidering the domain and the range of this attribute, regarding the importance of this attribute in our query, I decided include this column in index.
+#### DDL query
+```sql
+CREATE INDEX cus_pay
+    ON public.rental USING btree
+    (customer_id ASC NULLS LAST, last_update ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+```
+
+#### Cost before and after the creation of the index
+```t
+ Before Indexing cost:
+"Planning Time: 4.879 ms"
+"Execution Time: 120531.701 ms"
+```
+```t
+ After indexing cost:
+"Planning Time: 1.095 ms"
+"Execution Time: 3505.985 ms"
+```
+Improvement percentage ~ 97.1 %
+
+### Improving query Q3
+```t
+Before indexing query analysis: 
+"HashAggregate  (cost=122006.65..122006.66 rows=1 width=40) (actual time=2702.940..2702.944 rows=1 loops=1)"
+"  Group Key: f1.release_year"
+"  InitPlan 1 (returns $0)"
+"    ->  Aggregate  (cost=19.43..19.44 rows=1 width=32) (actual time=3.411..3.412 rows=1 loops=1)"
+"          ->  Seq Scan on address  (cost=0.00..17.54 rows=754 width=12) (actual time=0.891..3.187 rows=603 loops=1)"
+"  ->  Nested Loop  (cost=0.00..109840.55 rows=2429333 width=8) (actual time=13.099..1852.579 rows=3042208 loops=1)"
+"        Join Filter: (f1.rental_duration > f2.rental_duration)"
+"        Rows Removed by Join Filter: 4269792"
+"        ->  Seq Scan on film f2  (cost=0.00..253.00 rows=4000 width=6) (actual time=0.488..8.822 rows=4000 loops=1)"
+"        ->  Materialize  (cost=0.00..272.11 rows=1822 width=6) (actual time=0.000..0.129 rows=1828 loops=4000)"
+"              ->  Seq Scan on film f1  (cost=0.00..263.00 rows=1822 width=6) (actual time=0.010..11.594 rows=1828 loops=1)"
+"                    Filter: (length > 120)"
+"                    Rows Removed by Filter: 2172"
+"Planning Time: 11.782 ms"
+"Execution Time: 2703.163 ms"
+```
+```t
+After indexing query analysis: 
+"GroupAggregate  (cost=20.00..117503.32 rows=1 width=40) (actual time=2535.574..2535.576 rows=1 loops=1)"
+"  Group Key: f1.release_year"
+"  InitPlan 1 (returns $0)"
+"    ->  Aggregate  (cost=19.43..19.44 rows=1 width=32) (actual time=0.212..0.213 rows=1 loops=1)"
+"          ->  Seq Scan on address  (cost=0.00..17.54 rows=754 width=12) (actual time=0.023..0.112 rows=603 loops=1)"
+"  ->  Nested Loop  (cost=0.56..105337.21 rows=2429333 width=8) (actual time=28.912..2014.390 rows=3042208 loops=1)"
+"        ->  Index Scan using len_dur_re on film f1  (cost=0.28..652.53 rows=1822 width=6) (actual time=0.029..4.474 rows=1828 loops=1)"
+"              Filter: (length > 120)"
+"              Rows Removed by Filter: 2172"
+"        ->  Index Only Scan using len_dur_re on film f2  (cost=0.28..44.13 rows=1333 width=6) (actual time=0.022..0.841 rows=1664 loops=1828)"
+"              Index Cond: (rental_duration < f1.rental_duration)"
+"              Heap Fetches: 3042208"
+"Planning Time: 0.386 ms"
+"Execution Time: 2535.711 ms"
+```
+#### Targeted table and attributes
+ The chosen attributes are ```film.release_year```,```film.rental_duration``` and ```film.rating``` from the table ```public.film ``` since in pre-analysis we have  ```  Group Key: f1.release_year ``` in the grouping operation and the scan processes regarding  the filters ``` Join Filter: (f1.rental_duration > f2.rental_duration)```  and ```  Filter: (length > 120)```as time consuming processes. Further more the attribute ```film.release_year``` is from the type ```YEAR``` from the table ```public.film``` and the range of values for the attributes  ```film.rental_duration``` and  ```film.rating``` are the domain of type ```smallint``` and ```mpaa_rating``` and concidering the domain and the range of this attribute, regarding the importance of this attribute in our query, I decided include this column in index.
+#### DDL query
+```sql 
+CREATE INDEX len_dur_re
+    ON public.film USING btree
+    (release_year ASC NULLS LAST, rental_duration ASC NULLS LAST, rating ASC NULLS LAST)
+    INCLUDE(release_year, rental_duration, rating)
+    TABLESPACE pg_default;
+```
+
+#### Cost before and after the creation of the index
+```t
+ Before Indexing cost:
+"Planning Time: 11.782 ms"
+"Execution Time: 2703.163 ms"
+```
+```t
+ After indexing cost:
+"Planning Time: 0.386 ms"
+"Execution Time: 2535.711 ms"
+```
+Improvement percentage ~ 7 %
+
+## Using Hash index 
+### Improving query Q1
+```t
+Before indexing query analysis: 
+"Hash Join  (cost=510.99..12062691.37 rows=14596 width=70) (actual time=21.604..88026.342 rows=14596 loops=1)"
+"  Hash Cond: (p.rental_id = r.rental_id)"
+"  ->  Seq Scan on payment p  (cost=0.00..253.96 rows=14596 width=26) (actual time=0.011..5.925 rows=14596 loops=1)"
+"  ->  Hash  (cost=310.44..310.44 rows=16044 width=36) (actual time=5.663..5.664 rows=16044 loops=1)"
+"        Buckets: 16384  Batches: 1  Memory Usage: 1379kB"
+"        ->  Seq Scan on rental r  (cost=0.00..310.44 rows=16044 width=36) (actual time=0.006..1.884 rows=16044 loops=1)"
+"  SubPlan 1"
+"    ->  Aggregate  (cost=826.37..826.38 rows=1 width=8) (actual time=6.022..6.022 rows=1 loops=14596)"
+"          ->  Hash Join  (cost=510.99..814.21 rows=4865 width=0) (actual time=0.524..5.518 rows=6134 loops=14596)"
+"                Hash Cond: (p2.rental_id = r2.rental_id)"
+"                ->  Seq Scan on payment p2  (cost=0.00..290.45 rows=4865 width=4) (actual time=0.513..3.424 rows=6134 loops=14596)"
+"                      Filter: (amount < p.amount)"
+"                      Rows Removed by Filter: 8462"
+"                ->  Hash  (cost=310.44..310.44 rows=16044 width=4) (actual time=7.157..7.157 rows=16044 loops=1)"
+"                      Buckets: 16384  Batches: 1  Memory Usage: 693kB"
+"                      ->  Seq Scan on rental r2  (cost=0.00..310.44 rows=16044 width=4) (actual time=0.005..2.214 rows=16044 loops=1)"
+"Planning Time: 0.651 ms"
+"Execution Time: 88034.982 ms"
+```
+```t
+After indexing query analysis: 
+"Hash Join  (cost=510.99..12062691.37 rows=14596 width=70) (actual time=23.458..87625.492 rows=14596 loops=1)"
+"  Hash Cond: (p.rental_id = r.rental_id)"
+"  ->  Seq Scan on payment p  (cost=0.00..253.96 rows=14596 width=26) (actual time=0.017..5.176 rows=14596 loops=1)"
+"  ->  Hash  (cost=310.44..310.44 rows=16044 width=36) (actual time=6.774..6.774 rows=16044 loops=1)"
+"        Buckets: 16384  Batches: 1  Memory Usage: 1379kB"
+"        ->  Seq Scan on rental r  (cost=0.00..310.44 rows=16044 width=36) (actual time=0.010..2.343 rows=16044 loops=1)"
+"  SubPlan 1"
+"    ->  Aggregate  (cost=826.37..826.38 rows=1 width=8) (actual time=5.996..5.996 rows=1 loops=14596)"
+"          ->  Hash Join  (cost=510.99..814.21 rows=4865 width=0) (actual time=0.528..5.483 rows=6134 loops=14596)"
+"                Hash Cond: (p2.rental_id = r2.rental_id)"
+"                ->  Seq Scan on payment p2  (cost=0.00..290.45 rows=4865 width=4) (actual time=0.518..3.427 rows=6134 loops=14596)"
+"                      Filter: (amount < p.amount)"
+"                      Rows Removed by Filter: 8462"
+"                ->  Hash  (cost=310.44..310.44 rows=16044 width=4) (actual time=6.970..6.970 rows=16044 loops=1)"
+"                      Buckets: 16384  Batches: 1  Memory Usage: 693kB"
+"                      ->  Seq Scan on rental r2  (cost=0.00..310.44 rows=16044 width=4) (actual time=0.011..2.798 rows=16044 loops=1)"
+"Planning Time: 1.640 ms"
+"Execution Time: 87633.233 ms" 
+```
+#### Targeted table and attributes
+Attribute ```payment.rental_id``` from table ```public.payment``` was chosen due to the strict equality of the aforementioned attirbute in the query, however we wont have such an improvement since the attribute used in query are in narrow range of intergers as a primary key
+#### DDL query
+```sql
+CREATE INDEX rentalidd
+    ON public.payment USING hash
+    (rental_id)
+    TABLESPACE pg_default;
+```
+#### Cost before and after the creation of the index
+```t
+ Before Indexing cost:
+"Planning Time: 0.651 ms"
+"Execution Time: 88034.982 ms"
+```
+```t
+ After indexing cost:
+"Planning Time: 1.640 ms"
+"Execution Time: 87633.233 ms" 
+```
+Improvement percentage ~ 1.2 %
+### Improving query Q2
+```t
+Before indexing query analysis: 
+"Nested Loop Anti Join  (cost=603.14..9076455.39 rows=9731 width=10) (actual time=39915.429..125415.836 rows=1 loops=1)"
+"  Join Filter: (r2.last_update > r1.last_update)"
+"  Rows Removed by Join Filter: 801795100"
+"  ->  Hash Join  (cost=510.99..803.28 rows=14596 width=18) (actual time=12.309..124.185 rows=14596 loops=1)"
+"        Hash Cond: (p1.rental_id = r1.rental_id)"
+"        ->  Seq Scan on payment p1  (cost=0.00..253.96 rows=14596 width=12) (actual time=0.016..35.012 rows=14596 loops=1)"
+"        ->  Hash  (cost=310.44..310.44 rows=16044 width=14) (actual time=12.196..12.197 rows=16044 loops=1)"
+"              Buckets: 16384  Batches: 1  Memory Usage: 881kB"
+"              ->  Seq Scan on rental r1  (cost=0.00..310.44 rows=16044 width=14) (actual time=0.014..5.712 rows=16044 loops=1)"
+"  ->  Materialize  (cost=92.15..1455.43 rows=62167 width=8) (actual time=0.000..3.192 rows=54934 loops=14596)"
+"        ->  Hash Join  (cost=92.15..1144.59 rows=62167 width=8) (actual time=1.015..18.402 rows=62560 loops=1)"
+"              Hash Cond: (r2.customer_id = c.customer_id)"
+"              ->  Seq Scan on rental r2  (cost=0.00..310.44 rows=16044 width=10) (actual time=0.008..2.073 rows=16044 loops=1)"
+"              ->  Hash  (cost=62.95..62.95 rows=2336 width=4) (actual time=0.944..0.945 rows=2336 loops=1)"
+"                    Buckets: 4096  Batches: 1  Memory Usage: 115kB"
+"                    ->  Seq Scan on customer c  (cost=0.00..62.95 rows=2336 width=4) (actual time=0.010..0.486 rows=2336 loops=1)"
+"                          Filter: (active = 1)"
+"                          Rows Removed by Filter: 60"
+"Planning Time: 1.616 ms"
+"Execution Time: 125417.083 ms"
+```
+```t
+After indexing query analysis: 
+"Nested Loop Anti Join  (cost=603.14..9076455.39 rows=9731 width=10) (actual time=37641.888..117720.844 rows=1 loops=1)"
+"  Join Filter: (r2.last_update > r1.last_update)"
+"  Rows Removed by Join Filter: 801795100"
+"  ->  Hash Join  (cost=510.99..803.28 rows=14596 width=18) (actual time=10.077..106.777 rows=14596 loops=1)"
+"        Hash Cond: (p1.rental_id = r1.rental_id)"
+"        ->  Seq Scan on payment p1  (cost=0.00..253.96 rows=14596 width=12) (actual time=0.013..31.365 rows=14596 loops=1)"
+"        ->  Hash  (cost=310.44..310.44 rows=16044 width=14) (actual time=9.952..9.953 rows=16044 loops=1)"
+"              Buckets: 16384  Batches: 1  Memory Usage: 881kB"
+"              ->  Seq Scan on rental r1  (cost=0.00..310.44 rows=16044 width=14) (actual time=0.013..4.579 rows=16044 loops=1)"
+"  ->  Materialize  (cost=92.15..1455.43 rows=62167 width=8) (actual time=0.000..2.963 rows=54934 loops=14596)"
+"        ->  Hash Join  (cost=92.15..1144.59 rows=62167 width=8) (actual time=1.459..17.901 rows=62560 loops=1)"
+"              Hash Cond: (r2.customer_id = c.customer_id)"
+"              ->  Seq Scan on rental r2  (cost=0.00..310.44 rows=16044 width=10) (actual time=0.012..2.001 rows=16044 loops=1)"
+"              ->  Hash  (cost=62.95..62.95 rows=2336 width=4) (actual time=1.403..1.403 rows=2336 loops=1)"
+"                    Buckets: 4096  Batches: 1  Memory Usage: 115kB"
+"                    ->  Seq Scan on customer c  (cost=0.00..62.95 rows=2336 width=4) (actual time=0.012..0.762 rows=2336 loops=1)"
+"                          Filter: (active = 1)"
+"                          Rows Removed by Filter: 60"
+"Planning Time: 0.952 ms"
+"Execution Time: 117721.995 ms"
+```
+#### Targeted table and attributes
+Attribute ```rental.rental_id``` and  ```rental.customer_id``` from table ```public.rental``` was chosen due to the strict equality of the aforementioned attirbutes in the query, however we wont have such an improvement since the attributs used in query are in narrow range of intergers as a primary key and forign key
+#### DDL query
+```sql
+CREATE INDEX ff ON rental USING HASH (rental_id);
+CREATE INDEX fg ON rental USING HASH (customer_id);
+```
+#### Cost before and after the creation of the index
+```t
+ Before Indexing cost:
+"Planning Time: 1.616 ms"
+"Execution Time: 125417.083 ms"
+```
+```t
+ After indexing cost:
+"Planning Time: 0.952 ms"
+"Execution Time: 117721.995 ms"
+```
+Improvement percentage ~ 6.6 %
+
+### Improving query Q3
+```t
+Before indexing query analysis: 
+"HashAggregate  (cost=122006.65..122006.66 rows=1 width=40) (actual time=2647.186..2647.189 rows=1 loops=1)"
+"  Group Key: f1.release_year"
+"  InitPlan 1 (returns $0)"
+"    ->  Aggregate  (cost=19.43..19.44 rows=1 width=32) (actual time=0.333..0.334 rows=1 loops=1)"
+"          ->  Seq Scan on address  (cost=0.00..17.54 rows=754 width=12) (actual time=0.024..0.178 rows=603 loops=1)"
+"  ->  Nested Loop  (cost=0.00..109840.55 rows=2429333 width=8) (actual time=2.607..1820.352 rows=3042208 loops=1)"
+"        Join Filter: (f1.rental_duration > f2.rental_duration)"
+"        Rows Removed by Join Filter: 4269792"
+"        ->  Seq Scan on film f2  (cost=0.00..253.00 rows=4000 width=6) (actual time=0.007..5.533 rows=4000 loops=1)"
+"        ->  Materialize  (cost=0.00..272.11 rows=1822 width=6) (actual time=0.000..0.124 rows=1828 loops=4000)"
+"              ->  Seq Scan on film f1  (cost=0.00..263.00 rows=1822 width=6) (actual time=0.007..1.815 rows=1828 loops=1)"
+"                    Filter: (length > 120)"
+"                    Rows Removed by Filter: 2172"
+"Planning Time: 0.441 ms"
+"Execution Time: 2647.359 ms"
+```
+```t
+After indexing query analysis: 
+"HashAggregate  (cost=122006.65..122006.66 rows=1 width=40) (actual time=2446.853..2446.855 rows=1 loops=1)"
+"  Group Key: f1.release_year"
+"  InitPlan 1 (returns $0)"
+"    ->  Aggregate  (cost=19.43..19.44 rows=1 width=32) (actual time=0.209..0.210 rows=1 loops=1)"
+"          ->  Seq Scan on address  (cost=0.00..17.54 rows=754 width=12) (actual time=0.017..0.108 rows=603 loops=1)"
+"  ->  Nested Loop  (cost=0.00..109840.55 rows=2429333 width=8) (actual time=2.777..1663.371 rows=3042208 loops=1)"
+"        Join Filter: (f1.rental_duration > f2.rental_duration)"
+"        Rows Removed by Join Filter: 4269792"
+"        ->  Seq Scan on film f2  (cost=0.00..253.00 rows=4000 width=6) (actual time=0.015..4.508 rows=4000 loops=1)"
+"        ->  Materialize  (cost=0.00..272.11 rows=1822 width=6) (actual time=0.000..0.114 rows=1828 loops=4000)"
+"              ->  Seq Scan on film f1  (cost=0.00..263.00 rows=1822 width=6) (actual time=0.009..1.842 rows=1828 loops=1)"
+"                    Filter: (length > 120)"
+"                    Rows Removed by Filter: 2172"
+"Planning Time: 0.364 ms"
+"Execution Time: 2447.042 ms"
+```
+#### Targeted table and attributes
+No hash index is recommended since we got no strict equality on attributes in the query
+and the attributes used in query are in narrow range of interger values in disguise of different data types which causes a bad hashing index and numberous collisions. Anyways,Attribute ```rental.release_year``` and  ```rental.rating``` from table ```public.duration``` was chosen due to the application of the aforementioned attirbutes in the query.
+
+#### DDL query
+```sql
+CREATE INDEX dfd ON film USING HASH (release_year);
+CREATE INDEX dt ON film USING HASH (rating);
+CREATE INDEX du ON film USING HASH (duration);
+```
+#### Cost before and after the creation of the index
+```t
+ Before Indexing cost:
+"Planning Time: 0.441 ms"
+"Execution Time: 2647.359 ms"
+```
+```t
+ After indexing cost:
+"Planning Time: 0.364 ms"
+"Execution Time: 2447.042 ms"
+```
+Improvement percentage ~ 7.5 %
+## Using  SP-GiST index 
+SP-Gist index is not recommended since the hot attributes which play the key role of the query performance data types which are different forms of ineger data types, does not have a propper operator class to be indexed. Moreover,SP-Gist index exclusively for PSQL allows the creation of non-traditional disk-based indexes that belong to the class of space-partitioning trees to serve the needs of emerging database applications for instance quad-trees, the PMR quad-trees, oct-trees and k-d trees, which is not our case of application in our queries. 
+#### Cost before and after the creation of the index
+SP-Gist index is not recommended since the hot attributes which play the key role of the query performance data types which are different forms of ineger data types, does not have a propper operator class to be indexed. Moreover,SP-Gist index exclusively for PSQL allows the creation of non-traditional disk-based indexes that belong to the class of space-partitioning trees to serve the needs of emerging database applications for instance quad-trees, the PMR quad-trees, oct-trees and k-d trees, which is not our case of application in our queries. 
+### Improving query Q3
+SP-Gist index is not recommended since the hot attributes which play the key role of the query performance data types which are different forms of ineger data types, does not have a propper operator class to be indexed. Moreover,SP-Gist index exclusively for PSQL allows the creation of non-traditional disk-based indexes that belong to the class of space-partitioning trees to serve the needs of emerging database applications for instance quad-trees, the PMR quad-trees, oct-trees and k-d trees, which is not our case of application in our queries. 
