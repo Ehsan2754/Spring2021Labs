@@ -1,0 +1,86 @@
+﻿[
+  {
+    "a": {
+"identity": 0,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Khabib Nurmagomedov",
+"weight": "155"
+      }
+    }
+  },
+  {
+    "a": {
+"identity": 1,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Rafael Dos Anjos",
+"weight": "155"
+      }
+    }
+  },
+  {
+    "a": {
+"identity": 2,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Neil Magny",
+"weight": "170"
+      }
+    }
+  },
+  {
+    "a": {
+"identity": 8,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Michael Bisping",
+"weight": "185"
+      }
+    }
+  },
+  {
+    "a": {
+"identity": 8,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Michael Bisping",
+"weight": "185"
+      }
+    }
+  },
+  {
+    "a": {
+"identity": 9,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": " Matt Hamill",
+"weight": "185"
+      }
+    }
+  },
+  {
+    "a": {
+"identity": 12,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": " Kelvin Gastelum",
+"weight": "185"
+      }
+    }
+  }
+]

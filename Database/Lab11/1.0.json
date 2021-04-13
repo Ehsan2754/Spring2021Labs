@@ -1,0 +1,122 @@
+﻿[
+  {
+    "b": {
+"identity": 0,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Khabib Nurmagomedov",
+"weight": "155"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 1,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Rafael Dos Anjos",
+"weight": "155"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 2,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Neil Magny",
+"weight": "170"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 6,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Jon Jones",
+"weight": "205"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 7,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Daniel Cormier",
+"weight": "205"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 8,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Michael Bisping",
+"weight": "185"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 9,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": " Matt Hamill",
+"weight": "185"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 10,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Brandon Vera",
+"weight": "205"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 11,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Brock Lesnar",
+"weight": "230"
+      }
+    }
+  },
+  {
+    "b": {
+"identity": 12,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": " Kelvin Gastelum",
+"weight": "185"
+      }
+    }
+  }
+]

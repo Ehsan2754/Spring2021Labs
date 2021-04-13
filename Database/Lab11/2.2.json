@@ -1,0 +1,26 @@
+﻿[
+  {
+    "a": {
+"identity": 12,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": " Kelvin Gastelum",
+"weight": "185"
+      }
+    }
+  },
+  {
+    "a": {
+"identity": 8,
+"labels": [
+        "fighter"
+      ],
+"properties": {
+"name": "Michael Bisping",
+"weight": "185"
+      }
+    }
+  }
+]
