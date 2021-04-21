@@ -1,0 +1,15 @@
+version: '3.7'
+
+services:
+
+  neo4j:
+    image: neo4j
+
+    ports:
+      - '127.0.0.1:7687:7687'
+      - '127.0.0.1:7474:7474'
+    environment:
+      - NEO4J_AUTH=none
+    
+    volumes:
+      - './data:/data'
